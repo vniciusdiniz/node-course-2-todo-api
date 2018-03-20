@@ -20,11 +20,11 @@ MongoClient.connect('mongodb://localhost:27017/TodoApp', (err, client) => {
     // });
 
     //findOneAndDelete returns the object deleted
-    db.collection('Users').findOneAndDelete({
-        _id: new ObjectID("5ab0596d049a693d385863b8")
-    }).then((result) => {
-        console.log(`The user ${result.value.name} was deleted`);
-    });
+    // db.collection('Users').findOneAndDelete({
+    //     _id: new ObjectID("5ab0596d049a693d385863b8")
+    // }).then((result) => {
+    //     console.log(`The user ${result.value.name} was deleted`);
+    // });
 
    // client.close();
 });
