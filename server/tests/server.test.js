@@ -85,12 +85,6 @@ describe('GET /todos', () => {
 
 describe('GET /todos/:id', () => {
 
-    // console.log("DEBUGGING");
-    // console.log("========================================");
-    // console.log(todos[0]._id.toHexString());
-    // console.log("========================================");
-    // console.log("DEBUGGING");
-
     it ('should create todo doc ', (done) => {
         request(app)
             .get(`/todos/${todos[0]._id.toHexString()}`)
@@ -118,3 +112,62 @@ describe('GET /todos/:id', () => {
     });
 
 });
+
+
+describe('DELETE /todos/:id', () => {
+
+    it ('should remove a todo ', (done) => {
+        request(app)
+            .delete(`/todos/${todos[0]._id.toHexString()}`)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).to.equal(todos[0].text);                
+            })
+            .end( (err, res) => {
+                if (err) { return done(err) }
+                
+                Todo.findById(todos[0]._id.toHexString()).then((todo) => {
+                    expect(todo).to.not.exist;
+                    done();
+                }).catch((e) => done(e));
+            });
+    });
+
+    it ('should return 404 if todo not found', (done) =>{
+        var id = new ObjectID().toHexString;
+        request(app)
+            .delete(`/todos/${id}`)
+            .expect(404)
+            .end(done);
+    });
+
+    it ('should return 404 if object id is invalid', (done) =>{
+        var id = 123;
+        request(app)
+            .get(`/todos/${id}`)
+            .expect(404)
+            .end(done);
+    });
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // console.log("DEBUGGING");
+    // console.log("========================================");
+    // console.log( );
+    // console.log("========================================");
+    // console.log("DEBUGGING");
