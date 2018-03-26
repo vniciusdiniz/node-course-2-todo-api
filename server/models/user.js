@@ -4,6 +4,9 @@ const jwt       = require('jsonwebtoken');
 const _         = require('lodash');
 const bcrypt    = require('bcryptjs');
 
+//how many rounds or iterations the key setup phase uses
+SALT_WORK_FACTOR = 10;
+
 var userObject  = {
     email: {
         type: String,
@@ -91,8 +94,9 @@ UserSchema.statics.findByToken = function(token) {
 UserSchema.pre('save', function(next) {
     var user = this;
 
+    // only hash the password if it has been modified (or is new)
     if ( user.isModified('password') ){
-        bcrypt.genSalt(10, (err, salt) => {
+        bcrypt.genSalt(SALT_WORK_FACTOR, (err, salt) => {
             bcrypt.hash(user.password, salt, (err, hash) => {
                 user.password = hash;
                 next();

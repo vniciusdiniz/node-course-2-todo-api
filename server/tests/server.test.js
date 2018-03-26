@@ -1,50 +1,44 @@
 const expect    = require('chai').expect;
 const request   = require('supertest');
+// const jwt       = require('jsonwebtoken');
 const ObjectID  = require('mongodb').ObjectID;
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
-const todos = [{
-    _id: new ObjectID(),
-    text: 'First test todo'
-}, {
-    _id: new ObjectID(),
-    text: 'Second test todo',
-    completed: true,
-    completedAt: 333
-}];
-
-beforeEach((done) => {
-    Todo.remove({}).then(() => {
-        Todo.insertMany(todos);
-        done();
-    });
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
 
-    it ('should create a new todo', (done) => {
+    it ('should create a new todo', function(done) {
+        this.timeout(5000);
         var text = 'Test todo text';
 
         request(app)
             .post('/todos')
-            .send({text})
+            .send({text : text})
             .expect(200)
             .expect((res) => {
                 expect(res.body.text).to.equal(text);
             })
-            .end((err, res) => {
+            .end( 
+                function (err, res) {
                 if (err){
-                    return done(err);
-                }
-
-                Todo.find({text}).then((todos) => {
-                    expect(todos.length).to.equal(1);
-                    expect(todos[0].text).to.equal(text);
-                    done();
-                }).catch((e) => done(e));
-            })
+                    done(err);
+                } else {
+                    Todo.find({text}).then((todos) => {
+                        expect(todos.length).to.equal(1);
+                        expect(todos[0].text).to.equal(text);
+                        done();
+                    }).catch((e) => {
+                        done(e);
+                    });
+               }
+            }
+        );
     });
 
     it ('should not create todo with invalid body data', (done) => {
@@ -207,8 +201,84 @@ describe ('PATCH /todos/:id', () => {
     });
 });
 
+describe ('GET /users/me', () => {
+    it ('should return user if authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            //set the header (header name, header value)
+            .set('x-auth', users[0].tokens[0].token)
+            .expect(200)
+            .expect((res) => {
+                expect(res.body._id).to.equal(users[0]._id.toHexString());
+                expect(res.body.email).to.equal(users[0].email);
+            })
+            .end(done);
+    });
 
+    it ('should return 401 if not authenticated', (done) => {
+        request(app)
+            .get('/users/me')
+            .expect(401)
+            .expect((res) => {
+                expect(res.body).to.deep.equal({});
+            })
+            .end(done);
+    });
 
+});
+
+describe ('POST /users', () => {
+    it ('should create a user', (done) => {
+
+        var email = 'example@example.com';
+        var password = 'examplePass';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(200)
+            .expect((res) => {
+                expect(res.headers['x-auth']).to.exist;
+                expect(res.body._id).to.exist;
+                expect(res.body.email).to.equal(email);
+            })
+            .end( (err, res) => {
+                if (err){
+                    done(err);
+                } else {
+                    User.findOne({email}).then( (userFound) => {
+                        expect(userFound).to.exist;
+                        expect(userFound.password).to.not.equal(password);
+                        done();
+                    }).catch((e) => done(e));
+                }
+            });
+    });
+
+    it('should return validation errors if request invalid', (done) => {
+
+        var email = 'examp';
+        var password = 'examp';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(400)
+            .end(done);
+    });
+
+    it ('should not create user if email in use', (done) => {
+
+        var email = users[0].email;
+        var password = 'examplePass';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(400)
+            .end(done);
+    });
+})
 
 
 
